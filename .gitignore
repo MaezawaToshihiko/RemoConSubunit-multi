@@ -1,0 +1,6 @@
+!.gitignore
+!.prettierrc
+.*/
+node_modules/
+volumes/
+*.bak
