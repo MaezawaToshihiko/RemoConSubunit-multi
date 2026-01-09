@@ -4,11 +4,13 @@ const path = require("path");
 const luxon = require("luxon");
 const execSync = require("child_process").execSync;
 const crypto = require("crypto");
+const { sprintf } = require("sprintf-js");
 
 const joind_dir = path.resolve(__dirname, "..", "joind");
 // メッセージ送信間隔
 const status_interval = 10 * 60 * 1000; // 10分
 const analog_interval = 1 * 60 * 1000; // 1分
+const monitor_interval = 10 * 1000; // 10秒
 
 var device_no = 1;
 console.log("start at " + luxon.DateTime.utc());
@@ -29,14 +31,6 @@ process.on("uncaughtException", (error) => {
 process.on("unhandledRejection", (reason, p) => {
   console.log(`process caught unhandle rejection at ${p}. (reason=${reason})`);
 });
-
-async function sleep(time) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve();
-    }, time);
-  });
-}
 
 // Azure向けにメッセージ送信（joind経由）
 function send_azure(tx_data, status_dir) {
@@ -134,17 +128,83 @@ const datas_status_lan = [
   "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
   "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffff",
 ];
-const datas_analog_monitor = [
-  "2000/01/29 03:39:51, 0,CH10,B,0,0,0,0,0,0,0,1,0,0,0,0,0,0,-55.0,  3.0,  7.9,7.6e-02,3.9e-02,1.0e+00,0,-55.0,  3.0,  8.3,7.6e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.3,7.5e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.8,7.6e-02,3.9e-02,1.0e+00",
-  "2000/01/29 03:39:51, 0,CH11,B,0,0,0,0,0,0,0,1,0,0,0,0,0,0,-55.0,  3.0,  7.9,7.6e-02,3.9e-02,1.0e+00,0,-55.0,  3.0,  8.3,7.6e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.3,7.5e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.8,7.6e-02,3.9e-02,1.0e+00",
-  "2000/01/29 03:39:51, 0,CH12,B,0,0,0,0,0,0,0,1,0,0,0,0,0,0,-55.0,  3.0,  7.9,7.6e-02,3.9e-02,1.0e+00,0,-55.0,  3.0,  8.3,7.6e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.3,7.5e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.8,7.6e-02,3.9e-02,1.0e+00",
-  "2000/01/29 03:39:51, 0,CH13,B,0,0,0,0,0,0,0,1,0,0,0,0,0,0,-55.0,  3.0,  7.9,7.6e-02,3.9e-02,1.0e+00,0,-55.0,  3.0,  8.3,7.6e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.3,7.5e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.8,7.6e-02,3.9e-02,1.0e+00",
-  "2000/01/29 03:39:51, 0,CH14,B,0,0,0,0,0,0,0,1,0,0,0,0,0,0,-55.0,  3.0,  7.9,7.6e-02,3.9e-02,1.0e+00,0,-55.0,  3.0,  8.3,7.6e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.3,7.5e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.8,7.6e-02,3.9e-02,1.0e+00",
-  "2000/01/29 03:39:51, 0,CH15,B,0,0,0,0,0,0,0,1,0,0,0,0,0,0,-55.0,  3.0,  7.9,7.6e-02,3.9e-02,1.0e+00,0,-55.0,  3.0,  8.3,7.6e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.3,7.5e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.8,7.6e-02,3.9e-02,1.0e+00",
-  "2000/01/29 03:39:51, 0,CH16,B,0,0,0,0,0,0,0,1,0,0,0,0,0,0,-55.0,  3.0,  7.9,7.6e-02,3.9e-02,1.0e+00,0,-55.0,  3.0,  8.3,7.6e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.3,7.5e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.8,7.6e-02,3.9e-02,1.0e+00",
-  "2000/01/29 03:39:51, 0,CH21,B,0,0,0,0,0,0,0,1,0,0,0,0,0,0,-55.0,  3.0,  7.9,7.6e-02,3.9e-02,1.0e+00,0,-55.0,  3.0,  8.3,7.6e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.3,7.5e-02,3.9e-02,1.0e+00,-55.0,  3.0,  7.8,7.6e-02,3.9e-02,1.0e+00",
-];
 
+function make_monitorData(id, ch, level) {
+  const monitor_status = (id, ch, level) => {
+    const status_template = "%d,CH%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d";
+    return sprintf(
+      status_template,
+      Number(id),
+      Number(ch),
+      String(level),
+      ...Array.from({ length: 14 }, () => (Math.random() < 0.5 ? 0 : 1)),
+    );
+  };
+  const monitor_analog = () => {
+    const analog_template = "%1.1f,%1.1f,%1.1f,%1.1e,%1.1e,%1.1e";
+    let a = [
+      Number(crypto.randomInt(-100, 100)),
+      Number(crypto.randomInt(0, 100) / 100),
+      Number(crypto.randomInt(0, 100) / 100),
+      Number(crypto.randomInt(0, 10) / 10 ** crypto.randomInt(1, 9)),
+      Number(crypto.randomInt(0, 10) / 10 ** crypto.randomInt(1, 9)),
+      Number(crypto.randomInt(0, 10) / 10 ** crypto.randomInt(1, 9)),
+    ];
+    return sprintf(analog_template, a[0], a[1], a[2], a[3], a[4], a[5]);
+  };
+
+  let data = [];
+
+  // <日時>
+  const now = luxon.DateTime.now().setZone("Asia/Tokyo");
+  data.push(now.toFormat("yyyy/MM/dd HH:mm:ss"));
+
+  // <アラーム番号>,<チャネル番号>,<BER測定階層>,<各種状態>
+  data.push(monitor_status(id, ch, level));
+
+  // <瞬時値>
+  data.push(monitor_analog());
+
+  // <network_id値>
+  data.push("0");
+
+  // 定期配信データは 最大値，最小値，平均値を乗せる
+  if (id == 0) {
+    // <最大値>
+    data.push(monitor_analog());
+    // <最小値>
+    data.push(monitor_analog());
+    // <平均値>
+    data.push(monitor_analog());
+  }
+
+  return data.join(",");
+}
+
+/**
+ * 電波モニタデータを送信(複数まとめ)
+ **/
+function send_monitor(device, type, src, target) {
+  let utc_now = luxon.DateTime.utc();
+  let tx_data = {
+    datetime: utc_now,
+    value: {
+      type: type,
+      src: src,
+      target: target,
+      sw_state: 1,
+      data: "",
+    },
+  };
+  let data = device.monitor.ch.map((ch) => make_monitorData(0, ch, "A"));
+  tx_data.value.data = data.join("　");
+  tx_data.value.type = type;
+  send_azure(tx_data, device.send_dir);
+}
+
+/**
+ * analog_dataを送信
+ **/
 function send_analog(device, type, src, target, datas) {
   let utc_now = luxon.DateTime.utc();
   let tx_data = {
@@ -330,7 +390,7 @@ function send_status(device, type, src, target, datas) {
 }
 
 const RemoConSubunit = async (joind) => {
-  let device = { analog: {}, status: {} };
+  let device = { analog: {}, status: {}, monitor: {} };
 
   // device設定作成
   device.no = device_no;
@@ -343,6 +403,9 @@ const RemoConSubunit = async (joind) => {
   device.analog.data_no = 0;
   device.analog.merge = 6;
   device.analog.seq_number = {};
+
+  device.monitor.type = 5;
+  device.monitor.ch = [21, 18];
 
   device.status.data_no = 0;
   device.status.merge = 1;
@@ -425,6 +488,20 @@ const RemoConSubunit = async (joind) => {
           send_analog(device, 106, device.src_lan[3], 3, datas_analog_lan);
         },
         analog_interval,
+        device,
+      );
+    },
+    crypto.randomInt(10, 60 * 1000),
+  );
+
+  // アナログデータ通知(電波モニタ)
+  setTimeout(
+    () => {
+      device.monitor.timer = setInterval(
+        async (device) => {
+          send_monitor(device, device.monitor.type + 100, device.src_fpga, 0);
+        },
+        monitor_interval,
         device,
       );
     },
